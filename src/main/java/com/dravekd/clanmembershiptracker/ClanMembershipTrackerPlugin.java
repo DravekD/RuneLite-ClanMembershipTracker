@@ -63,6 +63,9 @@ public class ClanMembershipTrackerPlugin extends Plugin
 	@Inject
 	private ClanMembershipTrackerConfig config;
 
+	@Inject
+	private ClanTrackerDataManager clanTrackerDataManager;
+
 	@Override
 	protected void startUp() throws Exception
 	{
@@ -84,7 +87,11 @@ public class ClanMembershipTrackerPlugin extends Plugin
 		if (gameStateChanged.getGameState() == GameState.LOGIN_SCREEN)
 		{
 			writeDataFile();
-			exportDataFile();
+			List<ClanTracker> clans = new ArrayList<ClanTracker>();
+			clans.add(userClanData);
+			clans.add(guestClanData);
+			clanTrackerDataManager.updateClanMembership(clans);
+			//exportDataFile();
 		}
 	}
 
@@ -148,7 +155,7 @@ public class ClanMembershipTrackerPlugin extends Plugin
 	{
 		if (client.getClanChannel() != null)
 		{
-			if (!client.getClanChannel().getName().equals(userClanData.clanName))
+			if (!client.getClanChannel().getName().equals(userClanData.ClanName))
 				initializeFileAndData(ClanType.USER);
 
 			LocalDateTime timeUpdated = LocalDateTime.now();
@@ -157,7 +164,7 @@ public class ClanMembershipTrackerPlugin extends Plugin
 		}
 		if (client.getGuestClanChannel() != null)
 		{
-			if (!client.getGuestClanChannel().getName().equals(guestClanData.clanName))
+			if (!client.getGuestClanChannel().getName().equals(guestClanData.ClanName))
 				initializeFileAndData(ClanType.GUEST);
 
 			LocalDateTime timeUpdated = LocalDateTime.now();
@@ -183,26 +190,26 @@ public class ClanMembershipTrackerPlugin extends Plugin
 
 		allMembers.forEach((clanMember) ->
 		{
-			if (clanData.clanMembers == null)
+			if (clanData.ClanMembers == null)
 			{
-				ClanMemberTracker newMember = new ClanMemberTracker(clanMember.getName(), timeUpdated);
-				clanData.clanMembers.add(newMember);
+				ClanMemberTracker newMember = new ClanMemberTracker(clanMember.getName(), clanMember.getRank(), timeUpdated);
+				clanData.ClanMembers.add(newMember);
 			}
 			else
 			{
-				ClanMemberTracker tracker = clanData.clanMembers.stream().filter(c -> clanMember.getName().equals(c.name)).findFirst().orElse(null);
+				ClanMemberTracker tracker = clanData.ClanMembers.stream().filter(c -> clanMember.getName().equals(c.DisplayName)).findFirst().orElse(null);
 				if (tracker == null)
 				{
-					ClanMemberTracker newMember = new ClanMemberTracker(clanMember.getName(), timeUpdated);
-					clanData.clanMembers.add(newMember);
+					ClanMemberTracker newMember = new ClanMemberTracker(clanMember.getName(), clanMember.getRank(), timeUpdated);
+					clanData.ClanMembers.add(newMember);
 				}
 			}
 		});
 
 		List<ClanMemberTracker> clanMembersToRemove = new ArrayList<ClanMemberTracker>();
-		clanData.clanMembers.forEach((clanMemberTracker) ->
+		clanData.ClanMembers.forEach((clanMemberTracker) ->
 		{
-			ClanMember member = allMembers.stream().filter(m -> clanMemberTracker.name.equals(m.getName())).findFirst().orElse(null);
+			ClanMember member = allMembers.stream().filter(m -> clanMemberTracker.DisplayName.equals(m.getName())).findFirst().orElse(null);
 			if (member == null)
 			{
 				clanMembersToRemove.add(clanMemberTracker);
@@ -210,7 +217,7 @@ public class ClanMembershipTrackerPlugin extends Plugin
 		});
 		clanMembersToRemove.forEach((clanMember) ->
 		{
-			clanData.clanMembers.remove(clanMember);
+			clanData.ClanMembers.remove(clanMember);
 		});
 	}
 
@@ -231,10 +238,10 @@ public class ClanMembershipTrackerPlugin extends Plugin
 
 		onlineMembers.forEach((clanMember) ->
 		{
-			ClanMemberTracker tracker = clanData.clanMembers.stream().filter(c -> clanMember.getName().equals(c.name)).findFirst().orElse(null);
+			ClanMemberTracker tracker = clanData.ClanMembers.stream().filter(c -> clanMember.getName().equals(c.DisplayName)).findFirst().orElse(null);
 			if (tracker != null)
 			{
-				tracker.lastLoggedIn = timeUpdated;
+				tracker.LastLogDate = timeUpdated;
 			}
 		});
 	}
@@ -250,30 +257,30 @@ public class ClanMembershipTrackerPlugin extends Plugin
 		{
 			LocalDateTime timeUpdated = LocalDateTime.now();
 			String chatterName = chatMessage.getName().substring(chatMessage.getName().indexOf('>') + 1);
-			ClanMemberTracker tracker = userClanData.clanMembers.stream().filter(c -> chatterName.equals(c.name)).findFirst().orElse(null);
+			ClanMemberTracker tracker = userClanData.ClanMembers.stream().filter(c -> chatterName.equals(c.DisplayName)).findFirst().orElse(null);
 			if (tracker == null)
 			{
 				ClanMemberTracker newMember = new ClanMemberTracker(chatterName, timeUpdated);
-				newMember.lastChattedInClan = timeUpdated;
+				newMember.LastChatDate = timeUpdated;
 			}
 			else
 			{
-				tracker.lastChattedInClan = timeUpdated;
+				tracker.LastChatDate = timeUpdated;
 			}
 		}
 		else if (chatMessage.getType() == ChatMessageType.CLAN_GUEST_CHAT)
 		{
 			LocalDateTime timeUpdated = LocalDateTime.now();
 			String chatterName = chatMessage.getName().substring(chatMessage.getName().indexOf('>') + 1);
-			ClanMemberTracker tracker = guestClanData.clanMembers.stream().filter(c -> chatterName.equals(c.name)).findFirst().orElse(null);
+			ClanMemberTracker tracker = guestClanData.ClanMembers.stream().filter(c -> chatterName.equals(c.DisplayName)).findFirst().orElse(null);
 			if (tracker == null)
 			{
 				ClanMemberTracker newMember = new ClanMemberTracker(chatterName, timeUpdated);
-				newMember.lastChattedInClan = timeUpdated;
+				newMember.LastChatDate = timeUpdated;
 			}
 			else
 			{
-				tracker.lastChattedInClan = timeUpdated;
+				tracker.LastChatDate = timeUpdated;
 			}
 		}
 	}
@@ -386,15 +393,15 @@ public class ClanMembershipTrackerPlugin extends Plugin
 			)
 			{
 				writer.println("Name,LastLoggedIn,LastChattedInClan");
-				userClanData.clanMembers.forEach((clanMember) ->
+				userClanData.ClanMembers.forEach((clanMember) ->
 				{
-					String line = clanMember.name + ",";
-					if (clanMember.lastLoggedIn != null)
-						line += clanMember.lastLoggedIn.format(dateTimeFormatter) + ",";
+					String line = clanMember.DisplayName + ",";
+					if (clanMember.LastLogDate != null)
+						line += clanMember.LastLogDate.format(dateTimeFormatter) + ",";
 					else
 						line += "null,";
-					if (clanMember.lastChattedInClan != null)
-						line += clanMember.lastChattedInClan.format(dateTimeFormatter);
+					if (clanMember.LastChatDate != null)
+						line += clanMember.LastChatDate.format(dateTimeFormatter);
 					else
 						line += "null";
 
@@ -413,15 +420,15 @@ public class ClanMembershipTrackerPlugin extends Plugin
 			)
 			{
 				writer.println("Name,LastLoggedIn,LastChattedInClan");
-				guestClanData.clanMembers.forEach((clanMember) ->
+				guestClanData.ClanMembers.forEach((clanMember) ->
 				{
-					String line = clanMember.name + ",";
-					if (clanMember.lastLoggedIn != null)
-						line += clanMember.lastLoggedIn.format(dateTimeFormatter) + ",";
+					String line = clanMember.DisplayName + ",";
+					if (clanMember.LastLogDate != null)
+						line += clanMember.LastLogDate.format(dateTimeFormatter) + ",";
 					else
 						line += "null,";
-					if (clanMember.lastChattedInClan != null)
-						line += clanMember.lastChattedInClan.format(dateTimeFormatter);
+					if (clanMember.LastChatDate != null)
+						line += clanMember.LastChatDate.format(dateTimeFormatter);
 					else
 						line += "null";
 
@@ -432,30 +439,6 @@ public class ClanMembershipTrackerPlugin extends Plugin
 			{
 				log.error(ex.toString());
 			}
-		}
-	}
-
-	//Not needed, the encoding was messing with the data matching correctly.
-	private void readCsvFile()
-	{
-		try(BufferedReader br = new BufferedReader(new FileReader(userClanFile))) {
-			String test = br.readLine(); //Read the header line, we don't need this.
-			for(String line; (line = br.readLine()) != null; ) {
-				String[] lineItems = line.split(",", 0);
-
-				LocalDateTime lastLoggedIn = null;
-				LocalDateTime lastChattedInClan = null;
-				if (!lineItems[1].equals("null"))
-					lastLoggedIn = LocalDateTime.parse(lineItems[1], dateTimeFormatter);
-				if (!lineItems[2].equals("null"))
-					lastChattedInClan = LocalDateTime.parse(lineItems[2], dateTimeFormatter);
-
-				userClanData.clanMembers.add(new ClanMemberTracker(lineItems[0], lastLoggedIn, lastChattedInClan));
-			}
-		}
-		catch (Exception ex)
-		{
-			log.error(ex.toString());
 		}
 	}
 }

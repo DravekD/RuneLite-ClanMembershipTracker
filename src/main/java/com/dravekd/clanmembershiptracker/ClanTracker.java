@@ -1,18 +1,17 @@
 package com.dravekd.clanmembershiptracker;
 
-import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class ClanTracker implements java.io.Serializable {
     //Members
-    public String clanName;
-    public List<ClanMemberTracker> clanMembers;
+    public String ClanName;
+    public List<ClanMemberTracker> ClanMembers;
 
     //Methods
     public ClanTracker(String name)
     {
-        clanName = name;
-        clanMembers = new ArrayList<ClanMemberTracker>();
+        ClanName = name;
+        ClanMembers = new ArrayList<ClanMemberTracker>();
     }
 }
