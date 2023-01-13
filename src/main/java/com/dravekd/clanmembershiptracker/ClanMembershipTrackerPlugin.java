@@ -53,6 +53,7 @@ public class ClanMembershipTrackerPlugin extends Plugin
 	private File guestClanFile;
 	private File guestClanExportFile;
 
+	private GameState lastGameState;
 	private int ticksSinceLastUpdate;
 	private Boolean currentlyRunningUpdate;
 	private static DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -84,15 +85,26 @@ public class ClanMembershipTrackerPlugin extends Plugin
 	@Subscribe
 	public void onGameStateChanged(GameStateChanged gameStateChanged)
 	{
-		if (gameStateChanged.getGameState() == GameState.LOGIN_SCREEN)
+		if (lastGameState == GameState.LOGGED_IN && gameStateChanged.getGameState() == GameState.LOGIN_SCREEN)
 		{
 			writeDataFile();
 			List<ClanTracker> clans = new ArrayList<ClanTracker>();
-			clans.add(userClanData);
-			clans.add(guestClanData);
-			clanTrackerDataManager.updateClanMembership(clans);
+			if (userClanData != null)
+			{
+				clans.add(userClanData);
+			}
+			if (guestClanData != null)
+			{
+				clans.add(guestClanData);
+			}
+			if (clans.size() > 0)
+			{
+				clanTrackerDataManager.updateClanMembership(clans);
+			}
 			//exportDataFile();
 		}
+
+		lastGameState = gameStateChanged.getGameState();
 	}
 
 	@Provides
@@ -155,7 +167,7 @@ public class ClanMembershipTrackerPlugin extends Plugin
 	{
 		if (client.getClanChannel() != null)
 		{
-			if (!client.getClanChannel().getName().equals(userClanData.ClanName))
+			if (!client.getClanChannel().getName().equals(userClanData.name))
 				initializeFileAndData(ClanType.USER);
 
 			LocalDateTime timeUpdated = LocalDateTime.now();
@@ -164,7 +176,7 @@ public class ClanMembershipTrackerPlugin extends Plugin
 		}
 		if (client.getGuestClanChannel() != null)
 		{
-			if (!client.getGuestClanChannel().getName().equals(guestClanData.ClanName))
+			if (!client.getGuestClanChannel().getName().equals(guestClanData.name))
 				initializeFileAndData(ClanType.GUEST);
 
 			LocalDateTime timeUpdated = LocalDateTime.now();
@@ -190,26 +202,26 @@ public class ClanMembershipTrackerPlugin extends Plugin
 
 		allMembers.forEach((clanMember) ->
 		{
-			if (clanData.ClanMembers == null)
+			if (clanData.clanMembers == null)
 			{
 				ClanMemberTracker newMember = new ClanMemberTracker(clanMember.getName(), clanMember.getRank(), timeUpdated);
-				clanData.ClanMembers.add(newMember);
+				clanData.clanMembers.add(newMember);
 			}
 			else
 			{
-				ClanMemberTracker tracker = clanData.ClanMembers.stream().filter(c -> clanMember.getName().equals(c.DisplayName)).findFirst().orElse(null);
+				ClanMemberTracker tracker = clanData.clanMembers.stream().filter(c -> clanMember.getName().equals(c.displayName)).findFirst().orElse(null);
 				if (tracker == null)
 				{
 					ClanMemberTracker newMember = new ClanMemberTracker(clanMember.getName(), clanMember.getRank(), timeUpdated);
-					clanData.ClanMembers.add(newMember);
+					clanData.clanMembers.add(newMember);
 				}
 			}
 		});
 
 		List<ClanMemberTracker> clanMembersToRemove = new ArrayList<ClanMemberTracker>();
-		clanData.ClanMembers.forEach((clanMemberTracker) ->
+		clanData.clanMembers.forEach((clanMemberTracker) ->
 		{
-			ClanMember member = allMembers.stream().filter(m -> clanMemberTracker.DisplayName.equals(m.getName())).findFirst().orElse(null);
+			ClanMember member = allMembers.stream().filter(m -> clanMemberTracker.displayName.equals(m.getName())).findFirst().orElse(null);
 			if (member == null)
 			{
 				clanMembersToRemove.add(clanMemberTracker);
@@ -217,7 +229,7 @@ public class ClanMembershipTrackerPlugin extends Plugin
 		});
 		clanMembersToRemove.forEach((clanMember) ->
 		{
-			clanData.ClanMembers.remove(clanMember);
+			clanData.clanMembers.remove(clanMember);
 		});
 	}
 
@@ -238,10 +250,10 @@ public class ClanMembershipTrackerPlugin extends Plugin
 
 		onlineMembers.forEach((clanMember) ->
 		{
-			ClanMemberTracker tracker = clanData.ClanMembers.stream().filter(c -> clanMember.getName().equals(c.DisplayName)).findFirst().orElse(null);
+			ClanMemberTracker tracker = clanData.clanMembers.stream().filter(c -> clanMember.getName().equals(c.displayName)).findFirst().orElse(null);
 			if (tracker != null)
 			{
-				tracker.LastLogDate = timeUpdated;
+				tracker.lastLogDate = timeUpdated;
 			}
 		});
 	}
@@ -249,38 +261,34 @@ public class ClanMembershipTrackerPlugin extends Plugin
 	@Subscribe
 	public void onChatMessage(ChatMessage chatMessage)
 	{
-		if (chatMessage.getType() == ChatMessageType.FRIENDSCHAT)
-		{
-			client.addChatMessage(ChatMessageType.CLAN_CHAT, "IronDravekD", "Test message", "IronDravekD");
-		}
-		else if (chatMessage.getType() == ChatMessageType.CLAN_CHAT)
+		if (chatMessage.getType() == ChatMessageType.CLAN_CHAT)
 		{
 			LocalDateTime timeUpdated = LocalDateTime.now();
 			String chatterName = chatMessage.getName().substring(chatMessage.getName().indexOf('>') + 1);
-			ClanMemberTracker tracker = userClanData.ClanMembers.stream().filter(c -> chatterName.equals(c.DisplayName)).findFirst().orElse(null);
+			ClanMemberTracker tracker = userClanData.clanMembers.stream().filter(c -> chatterName.equals(c.displayName)).findFirst().orElse(null);
 			if (tracker == null)
 			{
 				ClanMemberTracker newMember = new ClanMemberTracker(chatterName, timeUpdated);
-				newMember.LastChatDate = timeUpdated;
+				newMember.lastChatDate = timeUpdated;
 			}
 			else
 			{
-				tracker.LastChatDate = timeUpdated;
+				tracker.lastChatDate = timeUpdated;
 			}
 		}
 		else if (chatMessage.getType() == ChatMessageType.CLAN_GUEST_CHAT)
 		{
 			LocalDateTime timeUpdated = LocalDateTime.now();
 			String chatterName = chatMessage.getName().substring(chatMessage.getName().indexOf('>') + 1);
-			ClanMemberTracker tracker = guestClanData.ClanMembers.stream().filter(c -> chatterName.equals(c.DisplayName)).findFirst().orElse(null);
+			ClanMemberTracker tracker = guestClanData.clanMembers.stream().filter(c -> chatterName.equals(c.displayName)).findFirst().orElse(null);
 			if (tracker == null)
 			{
 				ClanMemberTracker newMember = new ClanMemberTracker(chatterName, timeUpdated);
-				newMember.LastChatDate = timeUpdated;
+				newMember.lastChatDate = timeUpdated;
 			}
 			else
 			{
-				tracker.LastChatDate = timeUpdated;
+				tracker.lastChatDate = timeUpdated;
 			}
 		}
 	}
@@ -393,15 +401,15 @@ public class ClanMembershipTrackerPlugin extends Plugin
 			)
 			{
 				writer.println("Name,LastLoggedIn,LastChattedInClan");
-				userClanData.ClanMembers.forEach((clanMember) ->
+				userClanData.clanMembers.forEach((clanMember) ->
 				{
-					String line = clanMember.DisplayName + ",";
-					if (clanMember.LastLogDate != null)
-						line += clanMember.LastLogDate.format(dateTimeFormatter) + ",";
+					String line = clanMember.displayName + ",";
+					if (clanMember.lastLogDate != null)
+						line += clanMember.lastLogDate.format(dateTimeFormatter) + ",";
 					else
 						line += "null,";
-					if (clanMember.LastChatDate != null)
-						line += clanMember.LastChatDate.format(dateTimeFormatter);
+					if (clanMember.lastChatDate != null)
+						line += clanMember.lastChatDate.format(dateTimeFormatter);
 					else
 						line += "null";
 
@@ -420,15 +428,15 @@ public class ClanMembershipTrackerPlugin extends Plugin
 			)
 			{
 				writer.println("Name,LastLoggedIn,LastChattedInClan");
-				guestClanData.ClanMembers.forEach((clanMember) ->
+				guestClanData.clanMembers.forEach((clanMember) ->
 				{
-					String line = clanMember.DisplayName + ",";
-					if (clanMember.LastLogDate != null)
-						line += clanMember.LastLogDate.format(dateTimeFormatter) + ",";
+					String line = clanMember.displayName + ",";
+					if (clanMember.lastLogDate != null)
+						line += clanMember.lastLogDate.format(dateTimeFormatter) + ",";
 					else
 						line += "null,";
-					if (clanMember.LastChatDate != null)
-						line += clanMember.LastChatDate.format(dateTimeFormatter);
+					if (clanMember.lastChatDate != null)
+						line += clanMember.lastChatDate.format(dateTimeFormatter);
 					else
 						line += "null";
 

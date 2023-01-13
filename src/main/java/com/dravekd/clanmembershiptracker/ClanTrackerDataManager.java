@@ -7,30 +7,34 @@ import lombok.extern.slf4j.Slf4j;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Slf4j
 @Singleton
 public class ClanTrackerDataManager {
-    private final String baseUrl = "https://localhost:7072/api/v1/ClanTracker";
-    //private final String baseUrl = "https://clanactivitytracker20230112113751.azurewebsites.net/api/v1/ClanTracker";
-    private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+    //private final String baseUrl = "https://localhost:7072/api/v1/ClanTracker";
+    private final String baseUrl = "https://clanactivitytracker20230112113751.azurewebsites.net/api/v1/ClanTracker";
+    private static final MediaType JSON = MediaType.parse("application/json;");
 
     @Inject
     private OkHttpClient okHttpClient;
 
-    @Inject
-    private Gson gson;
+    //@Inject
+    //private Gson gson;
 
     protected void updateClanMembership(List<ClanTracker> clans)
     {
         String url = baseUrl.concat("/UpdateClanMembers");
         try
         {
+            Gson gson = new GsonBuilder().registerTypeAdapter(LocalDateTime.class, new LocalDateTimeSerializer()).create();
+            String json = gson.toJson(clans);
+
             Request r = new Request
                     .Builder()
                     .url(url)
-                    .post(RequestBody.create(JSON, gson.toJson(clans)))
+                    .put(RequestBody.create(JSON, json))
                     .build();
 
             okHttpClient.newCall(r).enqueue(new Callback()
@@ -51,7 +55,7 @@ public class ClanTrackerDataManager {
                     }
                     else
                     {
-                        log.debug("Post request failed");
+                        log.debug("Put request failed");
                         response.close();
                     }
                 }

@@ -5,13 +5,13 @@ import java.util.List;
 
 public class ClanTracker implements java.io.Serializable {
     //Members
-    public String ClanName;
-    public List<ClanMemberTracker> ClanMembers;
+    public String name;
+    public List<ClanMemberTracker> clanMembers;
 
     //Methods
     public ClanTracker(String name)
     {
-        ClanName = name;
-        ClanMembers = new ArrayList<ClanMemberTracker>();
+        this.name = name;
+        clanMembers = new ArrayList<ClanMemberTracker>();
     }
 }

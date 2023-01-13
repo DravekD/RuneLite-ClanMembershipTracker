@@ -6,33 +6,33 @@ import java.time.LocalDateTime;
 
 public class ClanMemberTracker implements java.io.Serializable {
     //Members
-    public String DisplayName;
-    public String Rank;
-    public LocalDateTime LastLogDate;
-    public LocalDateTime LastChatDate;
+    public String displayName;
+    public String rank;
+    public LocalDateTime lastLogDate;
+    public LocalDateTime lastChatDate;
 
     //Methods
     public ClanMemberTracker(String memberName, ClanRank memberRank, LocalDateTime loggedInDate)
     {
-        DisplayName = memberName;
-        LastLogDate = loggedInDate;
+        displayName = memberName;
+        lastLogDate = loggedInDate;
 
         if (memberRank == ClanRank.GUEST)
-            Rank = "Guest";
+            rank = "Guest";
         else if (memberRank == ClanRank.ADMINISTRATOR)
-            Rank = "Admin";
+            rank = "Admin";
         else if (memberRank == ClanRank.DEPUTY_OWNER)
-            Rank = "Deputy Owner";
+            rank = "Deputy Owner";
         else if (memberRank == ClanRank.OWNER)
-            Rank = "Owner";
+            rank = "Owner";
         else
-            Rank = "Member";
+            rank = "Member";
     }
 
     public ClanMemberTracker(String memberName, LocalDateTime lastChattedDate)
     {
-        DisplayName = memberName;
-        LastLogDate = lastChattedDate;
-        LastChatDate = lastChattedDate;
+        displayName = memberName;
+        lastLogDate = lastChattedDate;
+        lastChatDate = lastChattedDate;
     }
 }
