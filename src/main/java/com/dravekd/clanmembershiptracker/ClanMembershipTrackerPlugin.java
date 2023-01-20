@@ -7,6 +7,7 @@ import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.io.*;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -85,23 +86,25 @@ public class ClanMembershipTrackerPlugin extends Plugin
 	@Subscribe
 	public void onGameStateChanged(GameStateChanged gameStateChanged)
 	{
-		if (lastGameState == GameState.LOGGED_IN && gameStateChanged.getGameState() == GameState.LOGIN_SCREEN)
+		if (config.uploadCheckbox())
 		{
-			writeDataFile();
-			List<ClanTracker> clans = new ArrayList<ClanTracker>();
-			if (userClanData != null)
+			if (lastGameState == GameState.LOGGED_IN && gameStateChanged.getGameState() == GameState.LOGIN_SCREEN)
 			{
-				clans.add(userClanData);
+				writeDataFile();
+				List<ClanTracker> clans = new ArrayList<ClanTracker>();
+				if (userClanData != null)
+				{
+					clans.add(userClanData);
+				}
+				if (guestClanData != null)
+				{
+					clans.add(guestClanData);
+				}
+				if (clans.size() > 0)
+				{
+					clanTrackerDataManager.updateClanMembership(clans);
+				}
 			}
-			if (guestClanData != null)
-			{
-				clans.add(guestClanData);
-			}
-			if (clans.size() > 0)
-			{
-				clanTrackerDataManager.updateClanMembership(clans);
-			}
-			//exportDataFile();
 		}
 
 		lastGameState = gameStateChanged.getGameState();
@@ -170,7 +173,7 @@ public class ClanMembershipTrackerPlugin extends Plugin
 			if (!client.getClanChannel().getName().equals(userClanData.name))
 				initializeFileAndData(ClanType.USER);
 
-			LocalDateTime timeUpdated = LocalDateTime.now();
+			LocalDateTime timeUpdated = LocalDateTime.now(ZoneOffset.UTC);
 			updateClanMembershipList(timeUpdated, ClanType.USER);
 			updateClanOnlineMembership(timeUpdated, ClanType.USER);
 		}
@@ -179,7 +182,7 @@ public class ClanMembershipTrackerPlugin extends Plugin
 			if (!client.getGuestClanChannel().getName().equals(guestClanData.name))
 				initializeFileAndData(ClanType.GUEST);
 
-			LocalDateTime timeUpdated = LocalDateTime.now();
+			LocalDateTime timeUpdated = LocalDateTime.now(ZoneOffset.UTC);
 			updateClanMembershipList(timeUpdated, ClanType.GUEST);
 			updateClanOnlineMembership(timeUpdated, ClanType.GUEST);
 		}
@@ -263,7 +266,7 @@ public class ClanMembershipTrackerPlugin extends Plugin
 	{
 		if (chatMessage.getType() == ChatMessageType.CLAN_CHAT)
 		{
-			LocalDateTime timeUpdated = LocalDateTime.now();
+			LocalDateTime timeUpdated = LocalDateTime.now(ZoneOffset.UTC);
 			String chatterName = chatMessage.getName().substring(chatMessage.getName().indexOf('>') + 1);
 			ClanMemberTracker tracker = userClanData.clanMembers.stream().filter(c -> chatterName.equals(c.displayName)).findFirst().orElse(null);
 			if (tracker == null)
@@ -278,7 +281,7 @@ public class ClanMembershipTrackerPlugin extends Plugin
 		}
 		else if (chatMessage.getType() == ChatMessageType.CLAN_GUEST_CHAT)
 		{
-			LocalDateTime timeUpdated = LocalDateTime.now();
+			LocalDateTime timeUpdated = LocalDateTime.now(ZoneOffset.UTC);
 			String chatterName = chatMessage.getName().substring(chatMessage.getName().indexOf('>') + 1);
 			ClanMemberTracker tracker = guestClanData.clanMembers.stream().filter(c -> chatterName.equals(c.displayName)).findFirst().orElse(null);
 			if (tracker == null)
@@ -390,63 +393,6 @@ public class ClanMembershipTrackerPlugin extends Plugin
 		else if (event.getClanChannel() != null && event.isGuest())
 		{
 			initializeFileAndData(ClanType.GUEST);
-		}
-	}
-
-	private void exportDataFile()
-	{
-		if (userClanExportFile != null && userClanData != null)
-		{
-			try (PrintWriter writer = new PrintWriter(userClanExportFile, "UTF-8");
-			)
-			{
-				writer.println("Name,LastLoggedIn,LastChattedInClan");
-				userClanData.clanMembers.forEach((clanMember) ->
-				{
-					String line = clanMember.displayName + ",";
-					if (clanMember.lastLogDate != null)
-						line += clanMember.lastLogDate.format(dateTimeFormatter) + ",";
-					else
-						line += "null,";
-					if (clanMember.lastChatDate != null)
-						line += clanMember.lastChatDate.format(dateTimeFormatter);
-					else
-						line += "null";
-
-					writer.println(line);
-				});
-			}
-			catch (Exception ex)
-			{
-				log.error(ex.toString());
-			}
-		}
-
-		if (guestClanExportFile != null && guestClanData != null)
-		{
-			try (PrintWriter writer = new PrintWriter(guestClanExportFile, "UTF-8");
-			)
-			{
-				writer.println("Name,LastLoggedIn,LastChattedInClan");
-				guestClanData.clanMembers.forEach((clanMember) ->
-				{
-					String line = clanMember.displayName + ",";
-					if (clanMember.lastLogDate != null)
-						line += clanMember.lastLogDate.format(dateTimeFormatter) + ",";
-					else
-						line += "null,";
-					if (clanMember.lastChatDate != null)
-						line += clanMember.lastChatDate.format(dateTimeFormatter);
-					else
-						line += "null";
-
-					writer.println(line);
-				});
-			}
-			catch (Exception ex)
-			{
-				log.error(ex.toString());
-			}
 		}
 	}
 }

@@ -14,7 +14,7 @@ import java.util.List;
 @Singleton
 public class ClanTrackerDataManager {
     //private final String baseUrl = "https://localhost:7072/api/v1/ClanTracker";
-    private final String baseUrl = "https://osrsclantrackerapi.azurewebsites.net//api/v1/ClanTracker";
+    private final String baseUrl = "https://osrsclantrackerapi.azurewebsites.net/api/v1/ClanTracker";
     private static final MediaType JSON = MediaType.parse("application/json;");
 
     @Inject

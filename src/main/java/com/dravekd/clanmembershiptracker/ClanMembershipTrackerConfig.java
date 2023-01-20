@@ -7,6 +7,12 @@ import net.runelite.client.config.ConfigItem;
 @ConfigGroup("example")
 public interface ClanMembershipTrackerConfig extends Config
 {
+	@ConfigItem(keyName = "enableUpload", name = "Upload Membership Data", description = "Check to upload your locally tracked membership data on logout to a remote database.")
+	default boolean uploadCheckbox()
+	{
+		return true;
+	}
+
 	@ConfigItem(
 		keyName = "greeting",
 		name = "Welcome Greeting",
